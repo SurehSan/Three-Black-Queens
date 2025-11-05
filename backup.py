@@ -1,10 +1,7 @@
 import chess
 from .interface import Interface
 
-
 # Piece values for evaluation
-# Create multiple sections for piece values based on position and proximity to other pieces
-# and how that value would change based on what type of piece that piece is near
 BASE_PIECE_VALUES = {
     chess.PAWN: 1,
     chess.KNIGHT: 3,
@@ -29,57 +26,88 @@ POSITION_TABLES = {
 PIECE_SQUARE_TABLES = {
     'middlegame': {
         chess.PAWN: [
-            # Centered pawns worth more
-            # 8x8 grid with gradual increase in values as pawns reach the center
+            [100, 100, 100, 100, 100, 100, 100, 100], # Rank 8 (promotion rank - huge bonus)
+            [ 50,  50,  50,  50,  50,  50,  50,  50], # Rank 7 (near promotion)
+            [ 10,  10,  20,  30,  30,  20,  10,  10], # Rank 6
+            [  5,   5,  10,  25,  25,  10,   5,   5], # Rank 5
+            [  0,   0,   0,  20,  20,   0,   0,   0], # Rank 4
+            [  5,  -5, -10,   0,   0, -10,  -5,   5], # Rank 3
+            [  5,  10,  10, -20, -20,  10,  10,   5], # Rank 2
+            [  0,   0,   0,   0,   0,   0,   0,   0]  # Rank 1
         ],
         chess.KNIGHT: [
-            # Centered knights worth more, worth less on edges
-            # 8x8 grid emphasizing center control
+            [-50, -40, -30, -30, -30, -30, -40, -50], # Back rank (bad)
+            [-40, -20,   0,   5,   5,   0, -20, -40],
+            [-30,   5,  10,  15,  15,  10,   5, -30],
+            [-30,   0,  15,  20,  20,  15,   0, -30],
+            [-30,   5,  15,  20,  20,  15,   5, -30],
+            [-30,   0,  10,  15,  15,  10,   0, -30],
+            [-40, -20,   0,   0,   0,   0, -20, -40],
+            [-50, -40, -30, -30, -30, -30, -40, -50]
         ],
         chess.BISHOP: [
-            # Strong on long diagonals
-            # 8x8 grid emphasizing long diagonals
+            [-20, -10, -10, -10, -10, -10, -10, -20], # Back rank
+            [-10,   5,   0,   0,   0,   0,   5, -10],
+            [-10,  10,  15,  10,  10,  15,  10, -10],
+            [-10,   0,  10,  15,  15,  10,   0, -10],
+            [-10,   5,  15,  20,  20,  15,   5, -10], # Strong central diagonal control
+            [-10,  10,   5,  10,  10,   5,  10, -10],
+            [-10,   5,   0,   0,   0,   0,   5, -10],
+            [-20, -10, -10, -10, -10, -10, -10, -20]
         ],
         chess.ROOK: [
-            # Strong on 7th rank and open files
-            # 8x8 grid emphasizing file control
+            [ 15,  15,  15,  20,  20,  15,  15,  15], # Strong on 8th rank
+            [ 15,  20,  20,  20,  20,  20,  20,  15], # Strong on 7th rank
+            [  0,   5,   5,  10,  10,   5,   5,   0],
+            [  0,   0,   5,  10,  10,   5,   0,   0],
+            [  0,   0,   5,  10,  10,   5,   0,   0],
+            [  0,   0,   5,   5,   5,   5,   0,   0],
+            [  5,   5,  10,  10,  10,  10,   5,   5],
+            [  0,   0,   5,   5,   5,   5,   0,   0]
         ],
         chess.QUEEN: [
-            # Queen slightly better in center, should have good mobility in general
-            # 8x8 grid emphasizing castling
+            [-20, -10, -10,  -5,  -5, -10, -10, -20],
+            [-10,   0,   5,   0,   0,   0,   0, -10],
+            [-10,   5,   5,   5,   5,   5,   0, -10],
+            [  0,   0,   5,   5,   5,   5,   0,  -5],
+            [ -5,   0,   5,   5,   5,   5,   0,  -5],
+            [-10,   0,   5,   5,   5,   5,   0, -10],
+            [-10,   0,   0,   0,   0,   0,   0, -10],
+            [-20, -10, -10,  -5,  -5, -10, -10, -20]
         ],
         chess.KING: [
-            # King safety in early/middle game
-            # 8x8 grid emphas
+            [ 30,  20,   0, -10, -10,   0,  20,  30], # Corners safer
+            [ 20,  10,  -5, -10, -10,  -5,  10,  20],
+            [-10, -20, -20, -20, -20, -20, -20, -10],
+            [-20, -30, -30, -40, -40, -30, -30, -20],
+            [-30, -40, -40, -50, -50, -40, -40, -30],
+            [-30, -40, -40, -50, -50, -40, -40, -30],
+            [-30, -40, -40, -50, -50, -40, -40, -30],
+            [ 20,  10, -20, -30, -30, -20,  10,  20]  # Castle positions better
         ]
     },
+    
     'endgame': {
-        # Similar structure with different values
-        # Especially for the king as they become more active
-        # Pawns also become more valuable when available to promotion
+        # Most pieces keep their middlegame tables except the king
+        chess.KING: [
+            [-20, -10, -10, -10, -10, -10, -10, -20],
+            [-10,   0,  10,  10,  10,  10,   0, -10],
+            [-10,  10,  20,  30,  30,  20,  10, -10],
+            [-10,  10,  30,  40,  40,  30,  10, -10],
+            [-10,  10,  30,  40,  40,  30,  10, -10],
+            [-10,  10,  20,  30,  30,  20,  10, -10],
+            [-10,   0,  10,  10,  10,  10,   0, -10],
+            [-20, -10, -10, -10, -10, -10, -10, -20]
+        ]
     }
 }
 
 #Here, we will add weights based on how much control a piece has, what type of safety each piece is in, etc
 
-W_positional = 0.3
-W_mobility = 0.2
-W_center_control = 0.2
-W_pawn_structure = 0.1
-W_king_safety = 0.2
-
-CENTER_UNIT_VALUE = 0.05 #per square value for each controlled square
-PASSED_PAWN_VALUE = 0.5 #this is the bonus for having a passed pawn (cannot be stopped from promoting)
-DOUBLED_PAWN_PENALTY = 0.2 #penalty for having 2 pawns on the same file (cannot defend eachother )
-ISOLATED_PAWN_PENALTY = 0.15 #penalty for pawn with no friendly pawns on adjacent files
-
-Total_W = W_positional + W_mobility + W_center_control + W_pawn_structure + W_king_safety + CENTER_UNIT_VALUE + PASSED_PAWN_VALUE - DOUBLED_PAWN_PENALTY - ISOLATED_PAWN_PENALTY
-
-
 
 
 # center control 
-def count_center_control(board, color):
+def count_center_control(board, color, CENTER_UNIT_VALUE):
     #counts how many squares are under attack in the center
     middle_squares = [chess.C3, chess.C4, chess.C5, chess.C6, chess.D3, chess.D4, chess.D5, chess.D6, chess.E3, chess.E4, chess.E5, chess.E6, chess.F3, chess.F4, chess.F5]
     control_count = 0
@@ -89,48 +117,164 @@ def count_center_control(board, color):
 
     return control_count
 
-white_center = count_center_control(chess.board, chess.WHITE)
-black_center = count_center_control(chess.board, chess.BLACK)
-center_control_score = (white_center - black_center) * CENTER_UNIT_VALUE
+
+def is_defended(board, square, color, piece_values=BASE_PIECE_VALUES):
+    defenders = 0
+    attackers = 0
+    value = 0
+    for position in board.attackers(color, square):
+        piece = board.piece_at(position)
+        value = piece_values[piece.piece_type]
+        defenders += value
+    for position in board.attackers(not color, square):
+        piece = board.piece_at(position)
+        value = piece_values[piece.piece_type]
+        attackers += value
+    if defenders > attackers: 
+        return True
+    return False  
 
 def capture(board, color):
     for square in chess.SQUARES():
         if board.attackers(square, )
 
-def pawn_structure_metrics(board, color):
-    pawn_structure_points = W_pawn_structure
-    if color == chess.WHITE:
-        for square in chess.SQUARES:
-            if board.piece_at_square() == chess.PAWN:
-                if board.is_attacked_by(chess.WHITE, square):
-                    attackers = board.attackers(chess.WHITE, square)
-                    for piece in attackers:
-                        if piece == chess.PAWN and piece.color == chess.WHITE:
-                            pawn_structure_points += 0.01
-    if color == chess.BLACK:
-        for square in chess.SQUARES:
-            if board.piece_at_square() == chess.PAWN:
-                if board.is_attacked_by(chess.BLACK, square):
-                    attackers = board.attackers(chess.BLACK, square)
-                    for piece in attackers:
-                        if piece == chess.PAWN and piece.color == chess.BLACK:
-                            pawn_structure_points -= 0.01
-    return pawn_structure_points
+def bishop_pos_weight(BISHOP_W, board, color, square):
+    bishop_position_points = BISHOP_W
+    if is_defended(board, square, color):
+        bishop_position_points += 0.02
+    bishop_position_points += 0.02 * len(board.attacks(square))
+
+    return bishop_position_points
+
+def knight_pos_weight(KNIGHT_W, board, color, square):
+    knight_position_points = KNIGHT_W
+    if is_defended(board, square, color):
+        knight_position_points += 0.02
+    knight_position_points += 0.02 * len(board.attacks(square))
+
+    return knight_position_points
+
+def LINKED_POINTS(board, color, LINKED_BONUS):
+    for square in chess.SQUARES:
+        if board.piece_at_square() == chess.PAWN:
+            if board.is_attacked_by(chess.WHITE, square):
+                attackers = board.attackers(chess.WHITE, square)
+                for piece in attackers:
+                    if piece == chess.PAWN and piece.color == chess.WHITE:
+                        LINKED_BONUS += 0.01
+    return LINKED_BONUS
                 
             
-white_pawn_metrics = pawn_structure_metrics(chess.board, chess.WHITE)
-black_pawn_metrics = pawn_structure_metrics(chess.board, chess.BLACK)
-
+def pawn_metrics(board, color, PASSED_PAWN_VALUE):
+    white_pawn_metrics = LINKED_POINTS(chess.board, chess.WHITE)
+    black_pawn_metrics = LINKED_POINTS(chess.board, chess.BLACK)
 #sums all of the pawn features with penalties and values
-pawn_structure_score = (white_pawn_metrics.passed * PASSED_PAWN_VALUE - white_pawn_metrics.doubled * DOUBLED_PAWN_PENALTY - white_pawn_metrics.isolated * ISOLATED_PAWN_PENALTY)
-pawn_structure_score -= (black_pawn_metrics.passed * PASSED_PAWN_VALUE - black_pawn_metrics.doubled * DOUBLED_PAWN_PENALTY - black_pawn_metrics.isolated * ISOLATED_PAWN_PENALTY)
-#finds the sum of white's pawn structure based off of the 3 major pawn weights          
+    pawn_structure_score = (white_pawn_metrics.passed * PASSED_PAWN_VALUE - white_pawn_metrics.doubled * DOUBLED_PAWN_PENALTY - white_pawn_metrics.isolated * ISOLATED_PAWN_PENALTY)
+    pawn_structure_score -= (black_pawn_metrics.passed * PASSED_PAWN_VALUE - black_pawn_metrics.doubled * DOUBLED_PAWN_PENALTY - black_pawn_metrics.isolated * ISOLATED_PAWN_PENALTY)
 
-white_king_safety = king_safety_score(chess.board, chess.WHITE)
-black_king_safety = black_safety_score(chess.board, chess.BLACK)
-king_safety_score_total = white_king_safety - black_king_safety
+    return pawn_structure_score
+#finds the sum of white's pawn structure based off of the 3 major pawn weights    
+     
+     
 
 
+#need to make white safety score
+#need to make black safety score
+
+def king_safety(board, color):
+    # 1. Pawn shield
+    # 2. Enemy attacks around king
+    # 3. Castling status (position safety)
+
+    safety_score = 0.0
+
+    #find the king
+    king_square = board.king(color)
+    if king_square is None:
+        return 0
+    
+    #finds the coordinates
+    king_file = chess.square_file(king_square)
+    king_rank = chess.square_file(king_square)
+
+    #1. pawn shield
+    for file_offset in [-1, 0, 1]:
+        check_file = king_file + file_offset
+        if 0 <= check_file <= 7:
+            #this checks a square ahead of the king
+            if color == chess.WHITE:
+                check_rank = king_rank + 1
+                if check_rank <= 7:
+                    check_square = chess.square(check_file, check_rank)
+                    piece = board.piece_at(check_square)
+                    if piece and piece.piece_type == chess.PAWN and piece.color == color:
+                        safety_score += 0.15
+            else:
+                check_rank = king_rank - 1
+                if check_rank >= 7:
+                    check_square = chess.square(check_file, check_rank)
+                    piece = board.piece_at(check_square)
+                    if piece and piece.piece_type == chess.PAWN and piece.color == color:
+                        safety_score += 0.15
+
+    #2. ENEMY attacks: penalizes the squares around the king when it's under attack
+    enemy_color = not color
+    for file_offset in [-1, 0, 1]:
+        for rank_offset in [-1, 0, 1]:
+            check_file = king_file + file_offset
+            check_rank = king_rank + rank_offset
+
+            if 0 <= check_file <= 7 and 0 <= check_rank <= 7:
+                check_square - chess.square(check_file, check_rank)
+                if board.is_attacked_by(enemy_color, check_square):
+                    safety_score -= 0.08
+
+
+    #3 castling bonus: rewards when the king is castled 
+    if color == chess.WHITE:
+        if king_square in [chess.G1, chess.C1]:
+            safety_score += 0.25
+    else: 
+        if king_square in [chess.G8, chess.C8]:
+            safety_score += 0.25
+
+
+    return safety_score
+
+
+def get_game_phase(board):
+    """
+    Determines if we're in middlegame or endgame.
+    Returns a value between 0 (pure endgame) and 1 (pure middlegame)
+    """
+    # Material weights for phase calculation
+    PHASE_WEIGHTS = {
+        chess.PAWN: 0,
+        chess.KNIGHT: 1,
+        chess.BISHOP: 1,
+        chess.ROOK: 2,
+        chess.QUEEN: 4,
+        chess.KING: 0
+    }
+    
+     # Maximum phase score is when all pieces are on board
+    # 2 knights (2), 2 bishops (2), 2 rooks (4), 1 queen (4) per side = 24 total
+    
+    MIDDLEGAME_THRESHOLD = 20
+    ENDGAME_THRESHOLD = 4
+    
+    # Current phase score
+    phase_weight = 0
+
+    for square in chess.SQUARES:
+        piece = board.piece_at(square)
+        if piece and piece.piece_type != chess.KING:
+            phase+= PHASE_WEIGHTS[piece.piece_type]
+
+    # Convert to a 0-1 scale where:
+    # 1.0 = pure middlegame (all pieces present)
+    # 0.0 = pure endgame (only kings and pawns)
+    return min(1.0, phase / MAX_PHASE)
 
 
 #positional knowledge, add more knowledge based on where they are in the board
@@ -144,6 +288,45 @@ def evaluate_board(board):
     Returns score from WHITE's perspective.
     Positive score favors white, negative favors black.
     """
+    
+    color = chess.WHITE if board.turn == chess.WHITE else chess.BLACK
+
+    #we declare our weights here in order to calculate how optimal each side's position is
+    W_positional = 0.3
+    W_mobility = 0.2
+    W_center_control = 0.2
+    W_pawn_structure = 0.1
+    W_king_safety = 0.2
+
+    #positional weights by piece
+    BISHOP_W = 0.25
+    ROOK_W = 0.25
+    KNIGHT_W = 0.25
+    QUEEN_W = 0.25
+
+    #pawn weights
+    CENTER_UNIT_VALUE = 0.05 #per square value for each controlled square
+    PASSED_PAWN_VALUE = 0.5 #this is the bonus for having a passed pawn (cannot be stopped from promoting)
+    DOUBLED_PAWN_PENALTY = 0.2 #penalty for having 2 pawns on the same file (cannot defend eachother )
+    ISOLATED_PAWN_PENALTY = 0.15 #penalty for pawn with no friendly pawns on adjacent files
+    LINKED_BONUS = 0.1
+    
+    Total_W = W_positional + W_mobility + W_center_control + W_pawn_structure + W_king_safety + CENTER_UNIT_VALUE + PASSED_PAWN_VALUE - DOUBLED_PAWN_PENALTY - ISOLATED_PAWN_PENALTY
+
+
+    white_pawn_structure_score = pawn_metrics(chess.board, chess.WHITE, PASSED_PAWN_VALUE)
+    black_pawn_structure_score = pawn_metrics(chess.board, chess.BLACK, PASSED_PAWN_VALUE)
+
+    white_king_safety_score = king_safety(chess.board, chess.WHITE)
+    black_king_safety_score = king_safety(chess.board, chess.BLACK)
+
+    white_center = count_center_control(chess.board, chess.WHITE, CENTER_UNIT_VALUE)
+    black_center = count_center_control(chess.board, chess.BLACK, CENTER_UNIT_VALUE)
+
+    center_control_score = (white_center - black_center) * CENTER_UNIT_VALUE * W_center_control
+
+    score += center_control_score
+
     if board.can_claim_threefold_repetition():
         if board.turn == chess.WHITE:
             score = float("-inf")
@@ -166,11 +349,15 @@ def evaluate_board(board):
         if piece:
             value = BASE_PIECE_VALUES[piece.piece_type]
             score += value if piece.color == chess.WHITE else -value
+
+    white_king_safety = white_safety_score(chess.board, chess.WHITE)
+    black_king_safety = black_safety_score(chess.board, chess.BLACK)
+    king_safety_score_total = (white_king_safety - black_king_safety)
+
+    score += king_safety_score_total
             
     score = score * Total_W
 
-        
-    
     return score
 
 def minimax(board, depth, alpha, beta, maximizing_player):
