@@ -1,4 +1,4 @@
-# Three-Black-Queens
+# Three-Black-Queens (1st Place Winner!)
 AI Chess Engine Submission for DSU's AI Chess Competition!
 
 ## Description
