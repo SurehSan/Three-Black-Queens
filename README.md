@@ -25,7 +25,7 @@ Throughout the 2 weeks of the competition, we improved in our soft skills aswell
 - Algorithmic Skills 
 - Learning and applying chess logic to tangible code
 
-Additionally, we won FIRST PLACE and recieved Raspberry Pi 4 as a prize, which we are in the process of applying to a computer vision project!
+Additionally, we won FIRST PLACE and recieved a Raspberry Pi 4 kit as a prize, which we are in the process of applying to a computer vision project!
 
 
 
