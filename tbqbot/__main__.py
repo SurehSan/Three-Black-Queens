@@ -1,7 +1,7 @@
 import sys
 from .play import play
-from .train import train
-from .interface import TestInterface, CompetitionInterface
+from ..train import train
+from ..interface import TestInterface, CompetitionInterface
 
 if sys.argv[1] == "play":
     ### do stuff
